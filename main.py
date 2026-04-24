@@ -79,6 +79,7 @@ def train_dual_ai():
     record_dqn = 0
     
     agent = DQNAgent()
+    pygame.init()
     game = SnakeGameAI()
 
     while True:
@@ -89,6 +90,12 @@ def train_dual_ai():
         action_astar = get_astar_action(game)
 
         reward_astar, reward_dqn, done, score_astar, score_dqn, winner = game.step(action_astar, final_move_dqn)
+        
+        # Nếu nhấn nút X đóng cửa sổ
+        if done and winner == "QUIT":
+            pygame.quit()
+            break
+            
         state_new = agent.get_state(game)
 
         agent.train_short_memory(state_old, final_move_dqn, reward_dqn, state_new, done)
@@ -122,8 +129,21 @@ def run_gps_navigation():
     print(" BẮT ĐẦU MÔ PHỎNG GPS NAVIGATION (TRỰC QUAN HÓA)")
     print("="*50)
     
-    # Tạo bản đồ với 120 điểm (càng nhiều điểm vẽ càng đẹp)
-    env = CityMapEnv(w=1000, h=700, num_nodes=120) 
+    print("AI sẽ tìm đường dựa trên 2 tiêu chí: Thời gian và Năng lượng.")
+    print("Hãy nhập trọng số (0.0 đến 1.0) cho từng tiêu chí.")
+    try:
+        w1_input = input("Nhập trọng số w1 cho Thời gian (Mặc định 0.5): ")
+        w2_input = input("Nhập trọng số w2 cho Năng lượng (Mặc định 0.5): ")
+        w1 = float(w1_input) if w1_input.strip() else 0.5
+        w2 = float(w2_input) if w2_input.strip() else 0.5
+    except ValueError:
+        print("Đầu vào không hợp lệ. Sử dụng w1=0.5, w2=0.5")
+        w1 = 0.5
+        w2 = 0.5
+        
+    pygame.init()
+    # Tạo bản đồ với 120 điểm
+    env = CityMapEnv(w=1000, h=700, num_nodes=120, w1=w1, w2=w2) 
     clock = pygame.time.Clock()
     
     running = True
@@ -131,6 +151,10 @@ def run_gps_navigation():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r or event.key == pygame.K_SPACE:
+                    # Tạo lại bản đồ mới hoàn toàn khi nhấn R hoặc Space
+                    env = CityMapEnv(w=1000, h=700, num_nodes=120, w1=w1, w2=w2)
         
         # Cho AI suy luận 1 bước mỗi khung hình
         env.step_search()
@@ -149,8 +173,9 @@ def run_drone_delivery():
     print(" BẮT ĐẦU MÔ PHỎNG DRONE DELIVERY (TSP)")
     print("="*50)
     
-    # 35 điểm là con số đẹp để biểu diễn sự chằng chịt và thời gian gỡ rối vừa phải
-    env = DroneEnv(w=1000, h=750, num_points=35) 
+    pygame.init()
+    # Sử dụng 12 điểm để Drone lách vật cản (tránh treo máy khi chạy A* quá nhiều)
+    env = DroneEnv(w=1000, h=750, num_points=12) 
     clock = pygame.time.Clock()
     
     running = True
@@ -174,27 +199,35 @@ def run_drone_delivery():
 
 def main_menu():
     while True:
-        print("\n" + "="*50)
-        print("  AI LOGISTICS SUITE - MAIN DASHBOARD")
-        print("="*50)
-        print("1. Huấn luyện AI DQN (Đối đầu với A* dummy)")
-        print("2. GPS Navigation (A* Heuristic) - Đang phát triển")
-        print("3. Drone Delivery (TSP Optimization) - Đang phát triển")
-        print("0. Thoát")
-        print("="*50)
-        
-        choice = input("Nhập lựa chọn của bạn (0-3): ")
-        
-        if choice == '1':
-            train_dual_ai()
-        elif choice == '2':
-            run_gps_navigation() # Gọi hàm mới
-        elif choice == '3':
-            run_drone_delivery()
-        elif choice == '0':
-            sys.exit()
-        else:
-            print("Chức năng đang được tích hợp. Vui lòng thử lại sau.")
+        try:
+            print("\n" + "="*50)
+            print("  AI LOGISTICS SUITE - MAIN DASHBOARD")
+            print("="*50)
+            print("1. Huấn luyện AI DQN (Đối đầu với A* dummy)")
+            print("2. GPS Navigation (A* Heuristic) - Đang phát triển")
+            print("3. Drone Delivery (TSP Optimization) - Đang phát triển")
+            print("0. Thoát")
+            print("="*50)
+            
+            choice = input("Nhập lựa chọn của bạn (0-3): ")
+            
+            if choice == '1':
+                train_dual_ai()
+            elif choice == '2':
+                run_gps_navigation() # Gọi hàm mới
+            elif choice == '3':
+                run_drone_delivery()
+            elif choice == '0':
+                sys.exit()
+            else:
+                print("Chức năng đang được tích hợp. Vui lòng thử lại sau.")
+                
+        except KeyboardInterrupt:
+            print("\n[HỆ THỐNG] Đã ngắt thao tác hiện tại bằng phím tắt Ctrl+C, trở về Menu chính...")
+            try:
+                pygame.quit() # Đảm bảo đóng cả cửa sổ đồ họa nếu có
+            except:
+                pass
 
 if __name__ == '__main__':
     main_menu()

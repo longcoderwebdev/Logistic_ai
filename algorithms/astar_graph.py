@@ -4,9 +4,11 @@ import heapq
 def euclidean_distance(p1, p2):
     return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
-def astar_graph_search_generator(nodes, edges, start_idx, end_idx):
+def astar_graph_search_generator(nodes, edges, start_idx, end_idx, w1=0.5, w2=0.5):
     """
     Sử dụng yield để trả về trạng thái từng bước cho việc vẽ hoạt ảnh.
+    w1: Trọng số ưu tiên Thời gian
+    w2: Trọng số ưu tiên Năng lượng (Tiết kiệm)
     """
     open_list = []
     heapq.heappush(open_list, (0, start_idx, [start_idx]))
@@ -15,7 +17,7 @@ def astar_graph_search_generator(nodes, edges, start_idx, end_idx):
     g_scores[start_idx] = 0
     
     closed_set = set()
-    open_set_tracker = {start_idx} # Giúp UI biết nút nào đang trong hàng đợi
+    open_set_tracker = {start_idx}
 
     while open_list:
         current_f, current_node, path = heapq.heappop(open_list)
@@ -39,7 +41,15 @@ def astar_graph_search_generator(nodes, edges, start_idx, end_idx):
 
         # Duyệt các ngã rẽ
         if current_node in edges:
-            for neighbor, cost in edges[current_node]:
+            for edge_info in edges[current_node]:
+                # Tương thích ngược hoặc sử dụng time_cost/energy_cost mới
+                if len(edge_info) == 2:
+                    neighbor, dist = edge_info
+                    cost = dist
+                else:
+                    neighbor, dist, time_cost, energy_cost, terrain = edge_info
+                    cost = w1 * time_cost + w2 * energy_cost
+
                 if neighbor in closed_set:
                     continue
 
@@ -47,8 +57,12 @@ def astar_graph_search_generator(nodes, edges, start_idx, end_idx):
 
                 if tentative_g < g_scores[neighbor]:
                     g_scores[neighbor] = tentative_g
-                    h = euclidean_distance(nodes[neighbor], nodes[end_idx])
-                    f = tentative_g + h
+                    
+                    # Heuristic cần được scale hợp lý dựa trên w1, w2
+                    h_dist = euclidean_distance(nodes[neighbor], nodes[end_idx])
+                    # Ta coi thời gian bé nhất là h_dist * 0.5, năng lượng bé nhất là h_dist * 0.5
+                    h_cost = w1 * (h_dist * 0.5) + w2 * (h_dist * 0.5) 
+                    f = tentative_g + h_cost
                     
                     new_path = list(path)
                     new_path.append(neighbor)

@@ -103,8 +103,7 @@ class SnakeGameAI:
         self.frame_iteration += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+                return 0, 0, True, self.score_astar, self.score_dqn, "QUIT"
 
         # 1. Di chuyển cả 2 con
         self._move(action_astar, "ASTAR")
